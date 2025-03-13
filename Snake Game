@@ -1,0 +1,272 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <windows.h>
+#include <time.h>
+#include <conio.h>
+#include <string.h> // Para usar strcmp
+
+#define Altura 15
+#define Largura 50 
+#define COR_TEXTO 15  // Branco
+#define COR_COBRA 10  // Verde
+#define COR_FRUTA 12  // Vermelho
+#define COR_PAREDE 9  // Azul
+#define COR_FUNDO 0   // Preto
+
+char TelaJogo[Altura][Largura];
+char Labirinto[Altura][Largura] = 
+{
+    "##################################################",
+    "#                                                 #",
+    "#      ######            #######                  #",
+    "#                                               # #",
+    "#                                               # #",
+    "#               #                               # #",
+    "#   #######     #        ######                 # #",
+    "#        #      #                               # #",
+    "#               #######                         # #",
+    "#        #                                      # #",
+    "#    ######                                     # #",
+    "#                     #######                   # #",
+    "#                                                #",
+    "#       #######          #######                #",
+    "##################################################"
+};
+
+typedef struct Cobra {
+    int X, Y;
+    struct Cobra *Proximo;
+} Cobra;
+
+Cobra *cobra = NULL;
+int FrutaX, FrutaY, Pontuacao = 0, Recorde = 0;
+char Direcao = ' ';
+char resposta[50]; // Variável para armazenar a resposta do jogador
+
+void SetCor(int cor) {
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), cor);
+}
+
+void SalvarRecorde() {
+    FILE *arquivo = fopen("recorde.txt", "r");
+    if (arquivo) {
+        fscanf(arquivo, "%d", &Recorde);
+        fclose(arquivo);
+    }
+    if (Pontuacao > Recorde) {
+        arquivo = fopen("recorde.txt", "w");
+        fprintf(arquivo, "%d", Pontuacao);
+        fclose(arquivo);
+        Recorde = Pontuacao;
+    }
+}
+
+void IniciarCobra(){
+    cobra = (Cobra*)malloc(sizeof(Cobra));
+    cobra->X = Largura / 2;
+    cobra->Y = Altura / 2;
+    cobra->Proximo = NULL;
+}
+
+void AdicionarParteCobra(){
+    Cobra *Novo = (Cobra*)malloc(sizeof(Cobra));
+    Novo->Proximo = cobra;
+    Novo->X = cobra->X;
+    Novo->Y = cobra->Y;
+    cobra = Novo;
+}
+
+void GerarFruta(){
+    do {
+        FrutaX = rand() % (Largura - 2) + 1;
+        FrutaY = rand() % (Altura - 2) + 1;
+    } while(Labirinto[FrutaY][FrutaX] == '#');
+}
+
+int VerificarColisaoComCorpo(){
+    Cobra *Temporario = cobra->Proximo;
+    while(Temporario){
+        if(cobra->X == Temporario->X && cobra->Y == Temporario->Y){
+            return 1;
+        }
+        Temporario = Temporario->Proximo;
+    }
+    return 0;
+}
+
+void OcultarCursor() {
+    CONSOLE_CURSOR_INFO cursorInfo;
+    cursorInfo.bVisible = FALSE;
+    cursorInfo.dwSize = 1;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+}
+
+void DesenharTela() {
+    // Move o cursor para o topo da tela sem limpar a tela inteira
+    COORD coord = {0, 0};
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+
+    // Texto principal
+    SetCor(COR_TEXTO);
+    printf("============================================\n");
+    printf("         STRAWBERRY SNAKE GAME              \n");
+    printf("============================================\n");
+
+    printf("==========================\n");
+    printf("Melhor Album Da Taylor: %s\n", resposta); // Exibe a resposta do jogador
+    printf("Recorde: %d\n", Recorde);
+    printf("==========================\n\n");
+
+    for (int i = 0; i < Altura; i++) {
+        for (int j = 0; j < Largura; j++) {
+            int isCobra = 0;
+            Cobra *Temporario = cobra;
+            int parte = 0;
+            while (Temporario) {
+                if (Temporario->X == j && Temporario->Y == i) {
+                    SetCor(COR_COBRA);
+                    if (parte == 0) {
+                        printf("@"); // Cabeça da cobra
+                    } else {
+                        printf("o"); // Corpo da cobra
+                    }
+                    isCobra = 1;
+                    break;
+                }
+                Temporario = Temporario->Proximo;
+                parte++;
+            }
+
+            if (!isCobra) {
+                if (i == FrutaY && j == FrutaX) {
+                    SetCor(COR_FRUTA);
+                    printf("*"); // Fruta
+                } else {
+                    if (Labirinto[i][j] == '#') {
+                        SetCor(COR_PAREDE);
+                    } else {
+                        SetCor(COR_FUNDO);
+                    }
+                    printf("%c", Labirinto[i][j]);
+                }
+            }
+        }
+        printf("\n");
+    }
+
+    SetCor(COR_TEXTO);
+    printf("\n==========================\n");
+    printf("PONTUACAO: %d\n", Pontuacao);
+    printf("==========================\n");
+}
+
+void AtualizarEstadoJogo() {
+    int NovoX = cobra->X, NovoY = cobra->Y;
+
+    if(Direcao == 'w'){
+        NovoY--;
+    }
+
+    if(Direcao == 's'){
+        NovoY++;
+    }
+
+    if(Direcao == 'a'){
+        NovoX--;
+    }
+
+    if(Direcao == 'd'){
+        NovoX++;
+    }
+
+    if(Labirinto[NovoY][NovoX] == '#' || VerificarColisaoComCorpo()){
+        SalvarRecorde();
+        printf("Game Over! Pontuacao Final: %d\n", Pontuacao);
+        printf("Pressione 'n' para jogar novamente ou 'g' para sair.\n");
+        char escolha;
+        while(1) {
+            escolha = _getch();
+            if(escolha == 'n') {
+                Pontuacao = 0;
+                IniciarCobra();
+                GerarFruta();
+                DesenharTela();
+                return;
+            } else if(escolha == 'g') {
+                exit(0);
+            }
+        }
+    }
+
+    if(NovoX == FrutaX && NovoY == FrutaY){
+        Pontuacao++;
+        AdicionarParteCobra();
+        GerarFruta();
+    }
+
+    Cobra *Temporario = cobra;
+    int Xanterior = Temporario->X, Yanterior = Temporario->Y;
+    Temporario->X = NovoX;
+    Temporario->Y = NovoY;
+    Temporario = Temporario->Proximo;
+
+    while(Temporario){
+        int TemporarioX = Temporario->X, TemporarioY = Temporario->Y;
+        Temporario->X = Xanterior;
+        Temporario->Y = Yanterior;
+        Xanterior = TemporarioX;
+        Yanterior = TemporarioY;
+        Temporario = Temporario->Proximo;
+    }
+}
+
+void LerComandoUsuario(){
+    if (kbhit()) {
+        char Tecla = _getch();
+        if ((Tecla == 'w' && Direcao != 's') || (Tecla == 's' && Direcao != 'w') ||
+            (Tecla == 'a' && Direcao != 'd') || (Tecla == 'd' && Direcao != 'a')) {
+            Direcao = Tecla;
+        }
+    }
+}
+
+void ExibirMenuInicial() {
+    // Arte ASCII da Hello Kitty
+    SetCor(COR_TEXTO);
+    printf("\n");
+    printf("   /\\_/\\  \n");
+    printf("  ( o.o ) \n");
+    printf("   > ^ <  \n");
+    printf("  Hello Kitty!\n");
+    printf("\n");
+
+    printf("Melhor album da Taylor Swift? "); // Nova pergunta
+    scanf("%49s", resposta); // Armazena a resposta do jogador
+
+    // Verifica se a resposta é "lover" ou "1989"
+    if (strcmp(resposta, "lover") == 0 || strcmp(resposta, "1989") == 0) {
+        printf("\nDesculpe, mas esse album nao e permitido. Tente novamente!\n");
+        exit(0); // Encerra o jogo
+    }
+
+    printf("Pressione qualquer tecla para iniciar o jogo...\n");
+    getchar(); 
+}
+
+int main() {
+    srand(time(NULL));
+    OcultarCursor(); // Chama a função para ocultar o cursor
+    ExibirMenuInicial();
+    IniciarCobra();
+    GerarFruta();
+    DesenharTela();
+
+    while (1) {
+        LerComandoUsuario();
+        AtualizarEstadoJogo();
+        DesenharTela();
+        Sleep(200); // Controla a velocidade do jogo
+    }
+
+    return 0;
+}
