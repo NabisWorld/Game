@@ -3,7 +3,7 @@
 #include <windows.h>
 #include <time.h>
 #include <conio.h>
-#include <string.h> // Para usar strcmp
+#include <string.h> 
 
 #define Altura 15
 #define Largura 50 
@@ -17,17 +17,17 @@ char TelaJogo[Altura][Largura];
 char Labirinto[Altura][Largura] = 
 {
     "##################################################",
-    "#                                                 #",
-    "#      ######            #######                  #",
-    "#                                               # #",
-    "#                                               # #",
-    "#               #                               # #",
-    "#   #######     #        ######                 # #",
-    "#        #      #                               # #",
-    "#               #######                         # #",
-    "#        #                                      # #",
-    "#    ######                                     # #",
-    "#                     #######                   # #",
+    "#                                                #",
+    "#      ######                       #######     #",
+    "#                                                #",
+    "#                                                #",
+    "#               #                                #",
+    "#   #######             ######                  #",
+    "#        #      #                                #",
+    "#               ####            ###             #",
+    "#                #                              #",
+    "#    ###        #           ###                 #",
+    "#                                #######        #",
     "#                                                #",
     "#       #######          #######                #",
     "##################################################"
@@ -41,7 +41,7 @@ typedef struct Cobra {
 Cobra *cobra = NULL;
 int FrutaX, FrutaY, Pontuacao = 0, Recorde = 0;
 char Direcao = ' ';
-char resposta[50]; // Variável para armazenar a resposta do jogador
+char resposta[50]; 
 
 void SetCor(int cor) {
     SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), cor);
@@ -61,7 +61,17 @@ void SalvarRecorde() {
     }
 }
 
+void LiberarCobra() {
+    Cobra *Temporario;
+    while (cobra != NULL) {
+        Temporario = cobra;
+        cobra = cobra->Proximo;
+        free(Temporario);
+    }
+}
+
 void IniciarCobra(){
+    LiberarCobra(); // Libera a cobra existente antes de criar uma nova
     cobra = (Cobra*)malloc(sizeof(Cobra));
     cobra->X = Largura / 2;
     cobra->Y = Altura / 2;
@@ -102,7 +112,6 @@ void OcultarCursor() {
 }
 
 void DesenharTela() {
-    // Move o cursor para o topo da tela sem limpar a tela inteira
     COORD coord = {0, 0};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 
@@ -113,7 +122,7 @@ void DesenharTela() {
     printf("============================================\n");
 
     printf("==========================\n");
-    printf("Melhor Album Da Taylor: %s\n", resposta); // Exibe a resposta do jogador
+    printf("Melhor Album Da Taylor: %s\n", resposta); 
     printf("Recorde: %d\n", Recorde);
     printf("==========================\n\n");
 
@@ -193,6 +202,7 @@ void AtualizarEstadoJogo() {
                 DesenharTela();
                 return;
             } else if(escolha == 'g') {
+                LiberarCobra(); // Libera a memória alocada para a cobra antes de sair
                 exit(0);
             }
         }
@@ -240,8 +250,8 @@ void ExibirMenuInicial() {
     printf("  Hello Kitty!\n");
     printf("\n");
 
-    printf("Melhor album da Taylor Swift? "); // Nova pergunta
-    scanf("%49s", resposta); // Armazena a resposta do jogador
+    printf("Melhor album da Taylor Swift? "); 
+    scanf("%49s", resposta); 
 
     // Verifica se a resposta é "lover" ou "1989"
     if (strcmp(resposta, "lover") == 0 || strcmp(resposta, "1989") == 0) {
@@ -255,7 +265,7 @@ void ExibirMenuInicial() {
 
 int main() {
     srand(time(NULL));
-    OcultarCursor(); // Chama a função para ocultar o cursor
+    OcultarCursor();
     ExibirMenuInicial();
     IniciarCobra();
     GerarFruta();
@@ -265,7 +275,7 @@ int main() {
         LerComandoUsuario();
         AtualizarEstadoJogo();
         DesenharTela();
-        Sleep(200); // Controla a velocidade do jogo
+        Sleep(200);
     }
 
     return 0;
